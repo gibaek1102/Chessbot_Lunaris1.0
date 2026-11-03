@@ -1,0 +1,29 @@
+services:
+  lunaris:
+    build: .
+    restart: unless-stopped
+    environment:
+      ALLOWED_ORIGINS: https://chess.ericlee.dev
+      SELFPLAY: "1"                # 0 이면 자가대국 끔
+      SELFPLAY_MOVETIME: "250"     # 자가대국 수당 시간(ms)
+      SELFPLAY_HASH: "64"
+      PLAY_MAX_ENGINES: "4"        # 사람 대국 동시 슬롯
+      PLAY_MAX_PER_IP: "2"
+    volumes:
+      - lunaris-data:/data         # 대국 기록(PGN/JSONL)과 통계
+    # cpus: "2"                    # 서버를 같이 쓴다면 CPU 상한을 두세요
+
+  caddy:                           # HTTPS 자동 발급 + WebSocket 프록시
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [lunaris]
+
+volumes:
+  lunaris-data:
+  caddy-data:
+  caddy-config:

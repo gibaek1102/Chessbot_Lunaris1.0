@@ -1,0 +1,19 @@
+{
+  "name": "lunaris-web",
+  "version": "1.0.0",
+  "description": "Lunaris chess engine web demo + continuous self-play",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "selfplay": "node server/selfplay.js"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "ws": "^8.22.1"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
