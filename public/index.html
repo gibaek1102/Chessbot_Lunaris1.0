@@ -39,15 +39,10 @@
               <option value="r" data-i18n="random">랜덤</option>
             </select>
           </label>
-          <label><span data-i18n="level">난이도</span>
-            <select id="p-level">
-              <option value="1" data-i18n="lv1">1 · 입문</option>
-              <option value="2" data-i18n="lv2">2 · 쉬움</option>
-              <option value="3" selected data-i18n="lv3">3 · 보통</option>
-              <option value="4" data-i18n="lv4">4 · 0.3초</option>
-              <option value="5" data-i18n="lv5">5 · 1초</option>
-              <option value="6" data-i18n="lv6">6 · 3초</option>
-            </select>
+        </div>
+        <div class="row">
+          <label><span><span data-i18n="thinktime">생각 시간</span>: <b id="p-time-val">1초</b></span>
+            <input type="range" id="p-time" min="0" max="11" step="1" value="5">
           </label>
         </div>
         <button id="p-new" class="primary" data-i18n="newgame">새 게임</button>
