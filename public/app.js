@@ -9,7 +9,7 @@ let backend = null;
 // ===================== i18n =====================
 const T = {
   ko: {
-    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', level: '난이도',
+    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', thinktime: '생각 시간',
     lv1: '1 · 입문', lv2: '2 · 쉬움', lv3: '3 · 보통', lv4: '4 · 0.3초', lv5: '5 · 1초', lv6: '6 · 3초',
     newgame: '새 게임', undo: '무르기', flip: '판 뒤집기', btn_resign: '기권', golive: '● 라이브', recent: '최근 대국',
     pgn: 'PGN 내려받기 (최근 2MB)', foot: 'Lunaris는 직접 학습한 NNUE 평가 함수를 쓰는 UCI 체스 엔진입니다.',
@@ -23,7 +23,7 @@ const T = {
     local_note: '이 브라우저 안에서 돌아가는 자가대국입니다. 탭을 떠나면 멈춰요.', rand_open: '시작 국면은 다양성을 위한 무작위 오프닝입니다 (수 번호는 그 국면부터).', your_color_w: '백', your_color_b: '흑', eval_label: '평가',
   },
   en: {
-    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', level: 'Level',
+    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', thinktime: 'Think time',
     lv1: '1 · Beginner', lv2: '2 · Easy', lv3: '3 · Normal', lv4: '4 · 0.3s', lv5: '5 · 1s', lv6: '6 · 3s',
     newgame: 'New game', undo: 'Take back', flip: 'Flip board', btn_resign: 'Resign', golive: '● Live', recent: 'Recent games',
     pgn: 'Download PGN (last 2 MB)', foot: 'Lunaris is a UCI chess engine with a self-trained NNUE evaluation.',
@@ -44,7 +44,7 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = t(e.dataset.i18n); });
   $('lang').textContent = lang === 'ko' ? 'EN' : '한';
-  renderPlay(); renderLive();
+  renderPlay(); renderLive(); showTime();
 }
 const $ = (id) => document.getElementById(id);
 const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K' : String(n));
@@ -156,7 +156,7 @@ function onPlayState(s) {
   const g = new Chess();
   for (const u of s.moves) { try { applyUci(g, u); } catch { break; } }
   play.game = g;
-  play.humanColor = s.humanColor; play.level = s.level;
+  play.humanColor = s.humanColor;
   play.thinking = s.thinking; play.over = s.over; play.eval = s.eval; play.started = true;
   play.lastMove = s.moves.at(-1) ?? null;
   if (play.pendingNew) { pBoard.flipped = s.humanColor === 'b'; play.pendingNew = false; }
@@ -197,10 +197,17 @@ function renderPlay() {
   $('p-resign').disabled = !play.started || !!play.over;
 }
 
+// 생각 시간 슬라이더 (ms). 서버 모드에서는 서버가 상한(기본 10초)으로 제한한다.
+const TIMES = [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000, 30000];
+const fmtTime = (ms) => (lang === 'ko' ? `${ms / 1000}초` : `${ms / 1000} s`);
+function showTime() { $('p-time-val').textContent = fmtTime(TIMES[+$('p-time').value]); }
+try { const sv = localStorage.getItem('lunaris-time'); if (sv !== null && TIMES[+sv]) $('p-time').value = sv; } catch {}
+$('p-time').oninput = showTime;
+$('p-time').onchange = () => { try { localStorage.setItem('lunaris-time', $('p-time').value); } catch {} };
 $('p-new').onclick = () => {
   if (!wsOpen) return;
   play.pendingNew = true; play.closedByServer = false;
-  send({ type: 'new', color: $('p-color').value === 'r' ? 'random' : $('p-color').value, level: +$('p-level').value });
+  send({ type: 'new', color: $('p-color').value === 'r' ? 'random' : $('p-color').value, movetime: TIMES[+$('p-time').value] });
 };
 $('p-undo').onclick = () => send({ type: 'undo' });
 $('p-resign').onclick = () => send({ type: 'resign' });
