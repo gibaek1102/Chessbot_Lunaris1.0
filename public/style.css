@@ -81,6 +81,7 @@ svg.board { width: 100%; height: auto; display: block; }
 .recent .g span:first-child { width: 44px; color: var(--dim); } .recent .g .r { width: 56px; } .recent .g .x { color: var(--dim); }
 a.link { color: var(--accent); font-size: 13px; }
 a { color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
 footer { text-align: center; color: var(--dim); font-size: 12px; padding: 18px 12px 28px; }
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: #2a2f3b; border: 1px solid #3c4252; padding: 10px 18px; border-radius: 10px; z-index: 20; }
 @media (max-width: 760px) {
