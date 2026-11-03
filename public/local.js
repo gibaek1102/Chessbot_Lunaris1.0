@@ -3,7 +3,7 @@
 import { Chess } from './vendor/chess.js';
 import { LocalEngine, MOVE_RE } from './local-engine.js';
 
-const LEVELS = { 1: 'nodes 30', 2: 'nodes 300', 3: 'nodes 3000', 4: 'movetime 300', 5: 'movetime 1000', 6: 'movetime 3000' };
+const clampMs = (v, max) => Math.max(20, Math.min(max, Math.round(+v) || 1000));
 const SELF_MOVETIME = 120, MAX_PLIES = 400, RECENT_KEEP = 50, STORE = 'lunaris-local-stats-v1';
 const uciOf = (m) => m.from + m.to + (m.promotion ?? '');
 const mvTry = (g, u) => { try { return g.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { return null; } };
@@ -11,11 +11,11 @@ const fmtEval = (e) => (e.mate !== null ? `#${e.mate}` : ((e.cp >= 0 ? '+' : '')
 
 export function createLocalBackend(emit) {
   // ------------------------ 사람 대국 ------------------------
-  const play = { engine: null, game: new Chess(), humanColor: 'w', level: 3, busy: false, over: null, epoch: 0, lastEval: null };
+  const play = { engine: null, game: new Chess(), humanColor: 'w', movetime: 1000, busy: false, over: null, epoch: 0, lastEval: null };
 
   const state = () => ({
     type: 'state', moves: play.game.history({ verbose: true }).map(uciOf), fen: play.game.fen(),
-    humanColor: play.humanColor, level: play.level, thinking: play.busy, over: play.over, eval: play.lastEval,
+    humanColor: play.humanColor, movetime: play.movetime, thinking: play.busy, over: play.over, eval: play.lastEval,
   });
 
   async function ensureEngine() {
@@ -41,7 +41,7 @@ export function createLocalBackend(emit) {
     try {
       if (!(await ensureEngine())) throw new Error('no engine');
       const moves = play.game.history({ verbose: true }).map(uciOf);
-      let r = await play.engine.search({ moves, go: LEVELS[play.level], timeoutMs: 20000 });
+      let r = await play.engine.search({ moves, go: 'movetime ' + play.movetime, timeoutMs: play.movetime + 20000 });
       if (epoch !== play.epoch) return;
       let mv = MOVE_RE.test(r.best ?? '') ? mvTry(play.game, r.best) : null;
       if (!mv) {
@@ -59,9 +59,9 @@ export function createLocalBackend(emit) {
     }
   }
 
-  async function newGame({ color, level }) {
+  async function newGame({ color, movetime }) {
     play.epoch++;
-    play.level = Number.isInteger(level) && LEVELS[level] ? level : 3;
+    play.movetime = clampMs(movetime, 60000);
     play.humanColor = color === 'b' ? 'b' : color === 'w' ? 'w' : Math.random() < 0.5 ? 'w' : 'b';
     play.game = new Chess(); play.over = null; play.lastEval = null; play.busy = false;
     if (play.engine) { play.engine.kill(); play.engine = null; }   // 탐색 중일 수 있는 워커를 확실히 정리
