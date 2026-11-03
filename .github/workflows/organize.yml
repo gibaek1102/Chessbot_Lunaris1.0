@@ -1,0 +1,4 @@
+name: organize
+on: workflow_dispatch
+permissions: {contents: write}
+jobs: {go: {runs-on: ubuntu-latest, steps: [{uses: actions/checkout@v4}, {run: "mkdir -p public/vendor server engine/wasm/bits; for f in app.js board.js config.js engine-worker.js index.html local-engine.js local.js style.css; do test -f $f && git mv $f public/$f || true; done; test -f chess.js && git mv chess.js public/vendor/chess.js || true; cp openings.epd server/openings.epd; git mv openings.epd public/openings.epd; for f in engine.js play.js selfplay.js server.js; do test -f $f && git mv $f server/$f || true; done; for f in lunaris.cpp net_data.h wasm_entry.cpp; do test -f $f && git mv $f engine/$f || true; done; test -f stdc++.h && git mv stdc++.h engine/wasm/bits/stdc++.h || true; git add -A; git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -m organize; git push"}]}}
