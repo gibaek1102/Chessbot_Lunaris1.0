@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunaris — NNUE chess engine</title>
+<meta name="description" content="Play against Lunaris, a custom NNUE chess engine, and watch it play itself live.">
+<link rel="stylesheet" href="./style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23e8e2d0'/%3E%3Ccircle cx='21' cy='13' r='11' fill='%2314161c'/%3E%3C/svg%3E">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="moon"></span><b>Lunaris</b><span class="ver" id="ver">NNUE chess engine</span></div>
+  <nav>
+    <button class="tab active" data-tab="play" data-i18n="tab_play">대국</button>
+    <button class="tab" data-tab="live" data-i18n="tab_live">라이브 자가대국</button>
+  </nav>
+  <button id="lang" class="ghost" title="Language">EN</button>
+</header>
+
+<main>
+  <!-- ============ PLAY ============ -->
+  <section id="view-play" class="view">
+    <div class="stage">
+      <div class="evalbar" id="p-eval"><div class="fill"></div><span class="evtxt"></span></div>
+      <div class="boardwrap">
+        <div class="nameplate top" id="p-top"></div>
+        <div id="p-board" class="boardhost"></div>
+        <div class="nameplate bot" id="p-bot"></div>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="card">
+        <div class="row">
+          <label><span data-i18n="color">색</span>
+            <select id="p-color">
+              <option value="w" data-i18n="white">백</option>
+              <option value="b" data-i18n="black">흑</option>
+              <option value="r" data-i18n="random">랜덤</option>
+            </select>
+          </label>
+          <label><span data-i18n="level">난이도</span>
+            <select id="p-level">
+              <option value="1" data-i18n="lv1">1 · 입문</option>
+              <option value="2" data-i18n="lv2">2 · 쉬움</option>
+              <option value="3" selected data-i18n="lv3">3 · 보통</option>
+              <option value="4" data-i18n="lv4">4 · 0.3초</option>
+              <option value="5" data-i18n="lv5">5 · 1초</option>
+              <option value="6" data-i18n="lv6">6 · 3초</option>
+            </select>
+          </label>
+        </div>
+        <button id="p-new" class="primary" data-i18n="newgame">새 게임</button>
+      </div>
+      <div class="card status" id="p-status" aria-live="polite"></div>
+      <div class="card">
+        <div class="moves" id="p-moves"></div>
+        <div class="row btns">
+          <button id="p-undo" data-i18n="undo">무르기</button>
+          <button id="p-flip" data-i18n="flip">판 뒤집기</button>
+          <button id="p-resign" data-i18n="btn_resign">기권</button>
+        </div>
+      </div>
+      <div class="card info" id="p-info"></div>
+    </aside>
+  </section>
+
+  <!-- ============ LIVE ============ -->
+  <section id="view-live" class="view hidden">
+    <div class="stage">
+      <div class="evalbar" id="l-eval"><div class="fill"></div><span class="evtxt"></span></div>
+      <div class="boardwrap">
+        <div class="nameplate top" id="l-top"></div>
+        <div id="l-board" class="boardhost"></div>
+        <div class="nameplate bot" id="l-bot"></div>
+        <div class="scrub">
+          <button id="l-first">⏮</button><button id="l-prev">◀</button><button id="l-next">▶</button><button id="l-last">⏭</button>
+          <button id="l-golive" class="primary small" data-i18n="golive">● 라이브</button>
+        </div>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="card" id="l-head"></div>
+      <div class="card">
+        <div class="moves" id="l-moves"></div>
+      </div>
+      <div class="card" id="l-stats"></div>
+      <div class="card">
+        <h3 data-i18n="recent">최근 대국</h3>
+        <div id="l-recent" class="recent"></div>
+        <a href="./games.pgn" id="l-pgn" class="link" download data-i18n="pgn">PGN 내려받기 (최근 2MB)</a>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<footer>
+  <span data-i18n="foot">Lunaris는 직접 학습한 NNUE 평가 함수를 쓰는 UCI 체스 엔진입니다.</span>
+</footer>
+
+<script src="./config.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

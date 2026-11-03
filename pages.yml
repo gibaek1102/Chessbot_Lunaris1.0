@@ -1,0 +1,55 @@
+# GitHub Pages 배포: 엔진을 WebAssembly 로 컴파일해서 정적 사이트로 올립니다 (서버 불필요, 무료).
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Build WASM engine
+        run: |
+          mkdir -p dist/wasm
+          cp -r public/. dist/
+          em++ engine/wasm_entry.cpp -Iengine/wasm -std=c++17 -O3 -DNDEBUG -msimd128 \
+            -sMODULARIZE=1 -sEXPORT_NAME=createLunaris -sENVIRONMENT=worker \
+            -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864 \
+            -sEXPORTED_FUNCTIONS=_lunaris_init,_lunaris_command -sEXPORTED_RUNTIME_METHODS=ccall \
+            -o dist/wasm/lunaris.js
+          ls -la dist/wasm
+
+      - name: Switch site to in-browser mode
+        run: |
+          echo "window.LUNARIS_LOCAL = true;" > dist/config.js
+          touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
