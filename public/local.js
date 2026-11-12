@@ -39,9 +39,18 @@ export function createLocalBackend(emit) {
     const epoch = play.epoch;
     play.busy = true; emit(state());
     try {
-      if (!(await ensureEngine())) throw new Error('no engine');
       const moves = play.game.history({ verbose: true }).map(uciOf);
-      let r = await play.engine.search({ moves, go: 'movetime ' + play.movetime, timeoutMs: play.movetime + 20000 });
+      let r = null;
+      for (let attempt = 0; attempt < 3 && !r; attempt++) {   // 엔진이 죽으면 새 워커로 다시 시도한다
+        try {
+          if (!(await ensureEngine())) throw new Error('no engine');
+          r = await play.engine.search({ moves, go: 'movetime ' + play.movetime, timeoutMs: play.movetime + 20000 });
+        } catch (e) {
+          if (epoch !== play.epoch) return;
+          play.engine?.kill(); play.engine = null;
+          if (attempt === 2) throw e;
+        }
+      }
       if (epoch !== play.epoch) return;
       let mv = MOVE_RE.test(r.best ?? '') ? mvTry(play.game, r.best) : null;
       if (!mv) {
@@ -79,7 +88,7 @@ export function createLocalBackend(emit) {
   }
 
   async function undo() {
-    if (play.busy || !play.engine) return;
+    if (play.busy) return;
     if (play.game.history().length === 0) return;
     play.over = null; play.game.undo();
     if (play.game.turn() !== play.humanColor && play.game.history().length > 0) play.game.undo();
