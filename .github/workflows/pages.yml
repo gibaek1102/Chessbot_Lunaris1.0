@@ -30,7 +30,7 @@ jobs:
           cp -r public/. dist/
           em++ engine/wasm_entry.cpp -Iengine/wasm -std=c++17 -O3 -DNDEBUG -msimd128 \
             -sMODULARIZE=1 -sEXPORT_NAME=createLunaris -sENVIRONMENT=worker \
-            -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864 \
+            -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=134217728 -sSTACK_SIZE=8388608 \
             -sEXPORTED_FUNCTIONS=_lunaris_init,_lunaris_command -sEXPORTED_RUNTIME_METHODS=ccall \
             -o dist/wasm/lunaris.js
           ls -la dist/wasm
