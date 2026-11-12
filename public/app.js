@@ -197,17 +197,55 @@ function renderPlay() {
   $('p-resign').disabled = !play.started || !!play.over;
 }
 
-// 생각 시간 슬라이더 (ms). 서버 모드에서는 서버가 상한(기본 10초)으로 제한한다.
-const TIMES = [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000, 30000];
-const fmtTime = (ms) => (lang === 'ko' ? `${ms / 1000}초` : `${ms / 1000} s`);
-function showTime() { $('p-time-val').textContent = fmtTime(TIMES[+$('p-time').value]); }
-try { const sv = localStorage.getItem('lunaris-time'); if (sv !== null && TIMES[+sv]) $('p-time').value = sv; } catch {}
+// 생각 시간: 숫자 + 단위(ms / 초 / 분). 최소 20ms, 최대 60분. 서버 모드에서는 서버가 상한(기본 10초)으로 제한한다.
+const MIN_MS = 20, MAX_MS = 3600000;
+const UNIT_LABEL = { ko: ['ms', '초', '분'], en: ['ms', 's', 'min'] };
+function thinkMs() {
+  const v = parseFloat($('p-time').value);
+  if (!(v > 0)) return 1000;
+  return Math.max(MIN_MS, Math.min(MAX_MS, Math.round(v * +$('p-unit').value)));
+}
+function fmtTime(ms) {
+  const ko = lang === 'ko';
+  if (ms < 1000) return `${ms} ms`;
+  if (ms < 60000) return `${+(ms / 1000).toFixed(3)} ${ko ? '초' : 's'}`;
+  const m = Math.floor(ms / 60000), sec = Math.round((ms % 60000) / 1000);
+  return ko ? `${m}분${sec ? ` ${sec}초` : ''}` : `${m} min${sec ? ` ${sec} s` : ''}`;
+}
+function showTime() {
+  [...$('p-unit').options].forEach((o, i) => { o.textContent = UNIT_LABEL[lang][i]; });
+  $('p-time-val').textContent = fmtTime(thinkMs());
+}
+const saveTime = () => { try { localStorage.setItem('lunaris-time-v2', JSON.stringify({ v: $('p-time').value, u: $('p-unit').value })); } catch {} };
+try {
+  const sv = JSON.parse(localStorage.getItem('lunaris-time-v2') || 'null');
+  if (sv && [...$('p-unit').options].some((o) => o.value === String(sv.u)) && parseFloat(sv.v) > 0) { $('p-time').value = sv.v; $('p-unit').value = String(sv.u); }
+} catch {}
+let lastUnit = +$('p-unit').value;   // 직전에 선택된 단위 (단위 변경 시 환산용)
+// ms 값을 입력칸에 채운다. 현재 단위로 정확히 표현되지 않으면 맞는 단위(ms/초/분)로 바꾼다.
+function setFromMs(ms, unit) {
+  const exact = (u) => Math.round(+(ms / u).toFixed(6) * u) === ms && ms / u >= 0.001;
+  if (!exact(unit)) unit = ms < 1000 ? 1 : ms < 60000 ? 1000 : 60000;
+  lastUnit = unit; $('p-unit').value = String(unit);
+  $('p-time').value = String(+(ms / unit).toFixed(6));
+}
+const clampMsVal = (ms) => Math.max(MIN_MS, Math.min(MAX_MS, Math.round(ms)));
 $('p-time').oninput = showTime;
-$('p-time').onchange = () => { try { localStorage.setItem('lunaris-time', $('p-time').value); } catch {} };
+$('p-time').onchange = () => {   // 범위 밖/빈 값은 보정 (빈 값·0 은 1초)
+  const v = parseFloat($('p-time').value);
+  if (v > 0) setFromMs(clampMsVal(v * lastUnit), lastUnit); else setFromMs(1000, 1000);
+  showTime(); saveTime();
+};
+$('p-unit').onchange = () => {   // 단위를 바꾸면 같은 시간이 되도록 숫자를 환산한다
+  const v = parseFloat($('p-time').value);
+  const ms = v > 0 ? clampMsVal(v * lastUnit) : 1000;
+  setFromMs(ms, +$('p-unit').value);
+  showTime(); saveTime();
+};
 $('p-new').onclick = () => {
   if (!wsOpen) return;
   play.pendingNew = true; play.closedByServer = false;
-  send({ type: 'new', color: $('p-color').value === 'r' ? 'random' : $('p-color').value, movetime: TIMES[+$('p-time').value] });
+  send({ type: 'new', color: $('p-color').value === 'r' ? 'random' : $('p-color').value, movetime: thinkMs() });
 };
 $('p-undo').onclick = () => send({ type: 'undo' });
 $('p-resign').onclick = () => send({ type: 'resign' });
