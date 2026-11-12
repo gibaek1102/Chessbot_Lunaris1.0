@@ -70,7 +70,7 @@ export function createLocalBackend(emit) {
 
   async function newGame({ color, movetime }) {
     play.epoch++;
-    play.movetime = clampMs(movetime, 60000);
+    play.movetime = clampMs(movetime, 3600000);
     play.humanColor = color === 'b' ? 'b' : color === 'w' ? 'w' : Math.random() < 0.5 ? 'w' : 'b';
     play.game = new Chess(); play.over = null; play.lastEval = null; play.busy = false;
     if (play.engine) { play.engine.kill(); play.engine = null; }   // 탐색 중일 수 있는 워커를 확실히 정리
