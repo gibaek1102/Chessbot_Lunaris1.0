@@ -42,7 +42,10 @@
         </div>
         <div class="row">
           <label><span><span data-i18n="thinktime">생각 시간</span>: <b id="p-time-val">1초</b></span>
-            <input type="range" id="p-time" min="0" max="11" step="1" value="5">
+            <span class="timerow">
+              <input type="number" id="p-time" min="0" step="any" value="1" inputmode="decimal">
+              <select id="p-unit"><option value="1">ms</option><option value="1000" selected>초</option><option value="60000">분</option></select>
+            </span>
           </label>
         </div>
         <button id="p-new" class="primary" data-i18n="newgame">새 게임</button>
