@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.6 -0.6 3.2 4.2">
+<style>.o{stroke:#14161c}@media (prefers-color-scheme:dark){.o{stroke:#efe9d6}.d{fill:#efe9d6}}.d{fill:#14161c}</style>
+<g class="d"><circle cx="0" cy="0" r=".07"/><circle cx="3" cy="0" r=".07"/><circle cx="0" cy="3" r=".07"/><circle cx="3" cy="3" r=".07"/></g>
+<path class="o" d="M1 0H2L3 1V2L2 3H1L0 2V1Z" fill="none" stroke-width=".16" stroke-linejoin="round"/>
+<path d="M1 0V2L2 3" fill="none" stroke="#5a00ff" stroke-width=".2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
