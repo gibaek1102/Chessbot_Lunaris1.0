@@ -7,13 +7,12 @@
 <meta name="description" content="Play against Lunaris, a custom NNUE chess engine, and watch it play itself live.">
 <link rel="stylesheet" href="./style.css">
 <script src="./theme-init.js"></script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23e8e2d0'/%3E%3Ccircle cx='21' cy='13' r='11' fill='%2314161c'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="./logo.svg">
 </head>
 <body>
 <header>
   <div class="brand">
-    <!-- 로고: public/logo.svg 를 올리고 아래 줄 맨 앞의 감싸는 주석 표시를 지우면 이름 앞에 나타납니다. -->
-    <!-- <img class="logo" src="./logo.svg" alt="" height="26"> -->
+    <svg class="logo" id="logo" viewBox="-0.3 -0.3 3.6 3.6" height="28" width="28" role="img" aria-label="Lunaris"><path d="M1 0H2L3 1V2L2 3H1L0 2V1Z" fill="none" stroke="currentColor" stroke-width=".2" stroke-linejoin="round"/><path d="M1 0V2L2 3" fill="none" stroke="#5a00ff" stroke-width=".26" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <b>Lunaris</b><span class="ver" id="ver">NNUE chess engine</span></div>
   <nav>
     <button class="tab active" data-tab="play" data-i18n="tab_play">대국</button>
@@ -23,6 +22,7 @@
   <button id="theme" class="ghost" title="Light / Dark">☀</button>
   <button id="lang" class="ghost" title="Language">EN</button>
 </header>
+<div id="themebar" class="themebar hidden"><span data-i18n="pthemes">기물 테마</span> <label><span data-i18n="pw">백</span> <select id="pt-w"></select></label> <label><span data-i18n="pb">흑</span> <select id="pt-b"></select></label></div>
 
 <main>
   <!-- ============ PLAY ============ -->
