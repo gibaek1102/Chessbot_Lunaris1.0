@@ -1,4 +1,8 @@
 // 의존성 없는 SVG 체스판. 클릭 이동 + 드래그 이동.
+import { pieceArt, pieceSvgHtml } from './pieces.js';
+// 백/흑 기물 테마 ('classic' = 글리프). 모든 판이 공유하며, 바뀌면 등록된 판을 다시 그린다.
+const PT = { w: 'classic', b: 'classic' }; const BOARDS = new Set();
+export function setPieceThemes(w, b) { PT.w = w || 'classic'; PT.b = b || 'classic'; for (const bd of BOARDS) bd.render(); }
 const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };   // 채워진 글리프를 색만 바꿔 사용
 const FILES = 'abcdefgh';
 const FONT = '"Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", "Apple Symbols", sans-serif';   // style.css 의 .pc 와 같아야 함
@@ -36,6 +40,7 @@ export class Board {
     this.promoEl = document.createElement('div');
     this.promoEl.className = 'promo hidden';
     root.appendChild(this.promoEl);
+    BOARDS.add(this);
     this.render();
   }
 
@@ -100,6 +105,14 @@ export class Board {
 
   pieceEl(p, cx, cy, extra = '') {   // (cx, cy) = 기물이 놓일 칸의 중앙
     const white = p === p.toUpperCase();
+    const art = PT[white ? 'w' : 'b'] !== 'classic' && pieceArt(PT[white ? 'w' : 'b'], p);
+    if (art) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'), s = 10.4 / 45;
+      g.setAttribute('transform', `translate(${cx - 22.5 * s} ${cy - 22.5 * s}) scale(${s})`);
+      g.setAttribute('class', 'pcv pc-v ' + extra); g.setAttribute('style', art.style + ';pointer-events:none');
+      g.innerHTML = art.markup;
+      return g;
+    }
     const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     const { m, scale } = metrics(), g = m && m[p.toLowerCase()], size = 100 * scale;
     t.setAttribute('x', g ? cx - ((g.r - g.l) * scale) / 2 : cx);
@@ -159,8 +172,9 @@ export class Board {
     this.promoEl.replaceChildren();
     for (const p of ['q', 'r', 'b', 'n']) {
       const b = document.createElement('button');
-      b.className = 'promo-btn ' + (white ? 'pw' : 'pb');
-      b.textContent = GLYPH[p] + '︎';
+      const th = PT[white ? 'w' : 'b'], k = white ? p.toUpperCase() : p;
+      if (th !== 'classic' && pieceArt(th, k)) { b.className = 'promo-btn has-art'; b.innerHTML = pieceSvgHtml(th, k, 50); }
+      else { b.className = 'promo-btn ' + (white ? 'pw' : 'pb'); b.textContent = GLYPH[p] + '︎'; }
       b.onclick = () => { this.hidePromo(); this.opts.onMove?.({ from, to, promotion: p }); };
       this.promoEl.appendChild(b);
     }
