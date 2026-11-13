@@ -4,7 +4,8 @@ import { Chess } from './vendor/chess.js';
 import { LocalEngine, MOVE_RE } from './local-engine.js';
 
 const clampMs = (v, max) => Math.max(20, Math.min(max, Math.round(+v) || 1000));
-const SELF_MOVETIME = 120, MAX_PLIES = 400, RECENT_KEEP = 50, STORE = 'lunaris-local-stats-v1';
+const SELF_MOVETIME = 300, SELF_PACE = 1500, GAME_PAUSE = 4000, MAX_PLIES = 400, RECENT_KEEP = 50, STORE = 'lunaris-local-stats-v1';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const uciOf = (m) => m.from + m.to + (m.promotion ?? '');
 const mvTry = (g, u) => { try { return g.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { return null; } };
 const fmtEval = (e) => (e.mate !== null ? `#${e.mate}` : ((e.cp >= 0 ? '+' : '') + (e.cp / 100).toFixed(2)));
@@ -133,8 +134,11 @@ export function createLocalBackend(emit) {
       if (token !== selfToken) return;
       if (moves.length >= MAX_PLIES) { result = '1/2-1/2'; reason = 'maxplies'; break; }
       const side = game.turn() === 'w' ? white : black;
+      const t0 = performance.now();
       const r = await side.search({ startFen, moves, go: `movetime ${SELF_MOVETIME}`, timeoutMs: SELF_MOVETIME + 15000 });
       if (token !== selfToken) return;
+      const rest = SELF_PACE - (performance.now() - t0);   // 사람이 따라볼 수 있도록 한 수를 최소 SELF_PACE ms 간격으로 보여준다
+      if (rest > 0) { await sleep(rest); if (token !== selfToken) return; }
       if (!MOVE_RE.test(r.best ?? '')) throw new Error('bad bestmove');
       const mv = mvTry(game, r.best);
       if (!mv) throw new Error('illegal bestmove');
@@ -169,6 +173,7 @@ export function createLocalBackend(emit) {
         if (token !== selfToken) break;
         await playSelfGame(token, engines[0], engines[1], ops[idx], idx);
         idx = Math.floor(Math.random() * ops.length); fails = 0;
+        if (token === selfToken) await sleep(GAME_PAUSE);   // 끝난 판의 결과를 잠깐 보여준다
       } catch {
         if (token !== selfToken) break;
         engines?.forEach((e) => e.kill()); engines = null;
