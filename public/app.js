@@ -1,5 +1,8 @@
 import { Chess } from './vendor/chess.js';
-import { Board } from './board.js';
+import { Board, setPieceThemes } from './board.js';
+import { THEMES } from './pieces.js';
+let ptUnlocked = false, ptSel = { w: 'classic', b: 'classic' };
+try { ptUnlocked = localStorage.getItem('lunaris-unlock') === '1'; ptSel = { ...ptSel, ...JSON.parse(localStorage.getItem('lunaris-ptheme') || '{}') }; } catch {}
 import { createLocalBackend } from './local.js';
 
 // 서버 없이 브라우저(WASM)에서 실행하는 모드: config.js 가 켜거나, 주소에 ?local 을 붙이면 켜진다.
@@ -9,7 +12,7 @@ let backend = null;
 // ===================== i18n =====================
 const T = {
   ko: {
-    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', thinktime: '생각 시간', pace: '수 간격',
+    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', thinktime: '생각 시간', pace: '수 간격', pthemes: '기물 테마', pw: '백', pb: '흑', unlocked: '숨겨진 기물 테마가 열렸습니다', relocked: '기물 테마를 숨겼습니다', classic: '기본',
     lv1: '1 · 입문', lv2: '2 · 쉬움', lv3: '3 · 보통', lv4: '4 · 0.3초', lv5: '5 · 1초', lv6: '6 · 3초',
     newgame: '새 게임', undo: '무르기', flip: '판 뒤집기', btn_resign: '기권', golive: '● 라이브', recent: '최근 대국',
     pgn: 'PGN 내려받기 (최근 2MB)', foot: 'Lunaris는 직접 학습한 NNUE 평가 함수를 쓰는 UCI 체스 엔진입니다.',
@@ -23,7 +26,7 @@ const T = {
     local_note: '이 브라우저 안에서 돌아가는 자가대국입니다. 탭을 떠나면 멈춰요.', rand_open: '시작 국면은 다양성을 위한 무작위 오프닝입니다 (수 번호는 그 국면부터).', your_color_w: '백', your_color_b: '흑', eval_label: '평가',
   },
   en: {
-    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', thinktime: 'Think time', pace: 'Move interval',
+    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', thinktime: 'Think time', pace: 'Move interval', pthemes: 'Piece themes', pw: 'White', pb: 'Black', unlocked: 'Hidden piece themes unlocked', relocked: 'Piece themes hidden', classic: 'Classic',
     lv1: '1 · Beginner', lv2: '2 · Easy', lv3: '3 · Normal', lv4: '4 · 0.3s', lv5: '5 · 1s', lv6: '6 · 3s',
     newgame: 'New game', undo: 'Take back', flip: 'Flip board', btn_resign: 'Resign', golive: '● Live', recent: 'Recent games',
     pgn: 'Download PGN (last 2 MB)', foot: 'Lunaris is a UCI chess engine with a self-trained NNUE evaluation.',
@@ -44,7 +47,7 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = t(e.dataset.i18n); });
   $('lang').textContent = lang === 'ko' ? 'EN' : '한';
-  renderPlay(); renderLive(); showTime(); showSkins(); showPace();
+  renderPlay(); renderLive(); showTime(); showSkins(); showPace(); showPT();
 }
 const $ = (id) => document.getElementById(id);
 const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K' : String(n));
@@ -405,3 +408,27 @@ if (LOCAL) {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   });
 } else fetch('./api/stats').then((r) => r.json()).then((j) => { if (j.engine) $('ver').textContent = j.engine + ' · NNUE'; }).catch(() => {});
+
+// 숨은 기물 테마: 로고를 5번 연속(각 클릭 1.5초 이내) 누르면 열리고/닫힌다. 백/흑을 따로 고른다.
+function applyPT() {
+  const ok = (id) => id === 'classic' || THEMES.some((x) => x.id === id);
+  if (!ok(ptSel.w)) ptSel.w = 'classic'; if (!ok(ptSel.b)) ptSel.b = 'classic';
+  $('themebar').classList.toggle('hidden', !ptUnlocked);
+  setPieceThemes(ptUnlocked ? ptSel.w : 'classic', ptUnlocked ? ptSel.b : 'classic');
+}
+function showPT() {
+  const opts = `<option value="classic">${t('classic')}</option>` + THEMES.map((x) => `<option value="${x.id}">${x.name[lang === 'ko' ? 0 : 1]}</option>`).join('');
+  $('pt-w').innerHTML = opts; $('pt-b').innerHTML = opts;
+  $('pt-w').value = ptSel.w; $('pt-b').value = ptSel.b;
+  applyPT();
+}
+for (const s of ['w', 'b']) $('pt-' + s).onchange = () => { ptSel[s] = $('pt-' + s).value; try { localStorage.setItem('lunaris-ptheme', JSON.stringify(ptSel)); } catch {} applyPT(); };
+let logoClicks = 0, logoTimer = null;
+$('logo').onclick = () => {
+  logoClicks++; clearTimeout(logoTimer); logoTimer = setTimeout(() => { logoClicks = 0; }, 1500);
+  if (logoClicks < 5) return;
+  logoClicks = 0; ptUnlocked = !ptUnlocked;
+  try { localStorage.setItem('lunaris-unlock', ptUnlocked ? '1' : '0'); } catch {}
+  applyPT(); showToast(t(ptUnlocked ? 'unlocked' : 'relocked')); setTimeout(() => showToast(''), 2200);
+};
+showPT();
