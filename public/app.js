@@ -44,7 +44,7 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = t(e.dataset.i18n); });
   $('lang').textContent = lang === 'ko' ? 'EN' : '한';
-  renderPlay(); renderLive(); showTime();
+  renderPlay(); renderLive(); showTime(); showSkins();
 }
 const $ = (id) => document.getElementById(id);
 const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K' : String(n));
@@ -197,6 +197,20 @@ function renderPlay() {
   $('p-resign').disabled = !play.started || !!play.over;
 }
 
+// 스킨: <html data-skin="..."> 으로 style.css 의 색 변수를 바꾼다. 선택은 이 브라우저에 저장된다.
+const SKINS = [['classic', '기본', 'Classic'], ['wood', '우드', 'Wood'], ['ice', '아이스', 'Ice'], ['midnight', '미드나잇', 'Midnight']];
+function applySkin(id) {
+  if (!SKINS.some((s) => s[0] === id)) id = 'classic';
+  if (id === 'classic') delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = id;
+  $('skin').value = id;
+}
+function showSkins() {
+  const cur = $('skin').value || document.documentElement.dataset.skin || 'classic';
+  $('skin').innerHTML = SKINS.map((s) => `<option value="${s[0]}">${s[lang === 'ko' ? 1 : 2]}</option>`).join('');
+  applySkin(cur);
+}
+$('skin').onchange = () => { applySkin($('skin').value); try { localStorage.setItem('lunaris-skin', $('skin').value); } catch {} };
+try { document.documentElement.dataset.skin = localStorage.getItem('lunaris-skin') || ''; } catch {}
 // 생각 시간: 숫자 + 단위(ms / 초 / 분). 최소 20ms, 최대 60분. 서버 모드에서는 서버가 상한(기본 10초)으로 제한한다.
 const MIN_MS = 20, MAX_MS = 3600000;
 const UNIT_LABEL = { ko: ['ms', '초', '분'], en: ['ms', 's', 'min'] };
