@@ -9,7 +9,7 @@ let backend = null;
 // ===================== i18n =====================
 const T = {
   ko: {
-    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', thinktime: '생각 시간',
+    tab_play: '대국', tab_live: '라이브 자가대국', color: '색', white: '백', black: '흑', random: '랜덤', thinktime: '생각 시간', pace: '수 간격',
     lv1: '1 · 입문', lv2: '2 · 쉬움', lv3: '3 · 보통', lv4: '4 · 0.3초', lv5: '5 · 1초', lv6: '6 · 3초',
     newgame: '새 게임', undo: '무르기', flip: '판 뒤집기', btn_resign: '기권', golive: '● 라이브', recent: '최근 대국',
     pgn: 'PGN 내려받기 (최근 2MB)', foot: 'Lunaris는 직접 학습한 NNUE 평가 함수를 쓰는 UCI 체스 엔진입니다.',
@@ -23,7 +23,7 @@ const T = {
     local_note: '이 브라우저 안에서 돌아가는 자가대국입니다. 탭을 떠나면 멈춰요.', rand_open: '시작 국면은 다양성을 위한 무작위 오프닝입니다 (수 번호는 그 국면부터).', your_color_w: '백', your_color_b: '흑', eval_label: '평가',
   },
   en: {
-    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', thinktime: 'Think time',
+    tab_play: 'Play', tab_live: 'Live self-play', color: 'Color', white: 'White', black: 'Black', random: 'Random', thinktime: 'Think time', pace: 'Move interval',
     lv1: '1 · Beginner', lv2: '2 · Easy', lv3: '3 · Normal', lv4: '4 · 0.3s', lv5: '5 · 1s', lv6: '6 · 3s',
     newgame: 'New game', undo: 'Take back', flip: 'Flip board', btn_resign: 'Resign', golive: '● Live', recent: 'Recent games',
     pgn: 'Download PGN (last 2 MB)', foot: 'Lunaris is a UCI chess engine with a self-trained NNUE evaluation.',
@@ -44,7 +44,7 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = t(e.dataset.i18n); });
   $('lang').textContent = lang === 'ko' ? 'EN' : '한';
-  renderPlay(); renderLive(); showTime(); showSkins();
+  renderPlay(); renderLive(); showTime(); showSkins(); showPace();
 }
 const $ = (id) => document.getElementById(id);
 const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K' : String(n));
@@ -198,7 +198,7 @@ function renderPlay() {
 }
 
 // 스킨: <html data-skin="..."> 으로 style.css 의 색 변수를 바꾼다. 선택은 이 브라우저에 저장된다.
-const SKINS = [['classic', '기본', 'Classic'], ['wood', '우드', 'Wood'], ['ice', '아이스', 'Ice'], ['midnight', '미드나잇', 'Midnight']];
+const SKINS = [['classic', '기본', 'Classic'], ['wood', '우드', 'Wood'], ['ice', '아이스', 'Ice'], ['midnight', '미드나잇', 'Midnight'], ['aqua', '아쿠아', 'Aqua']];
 function applySkin(id) {
   if (!SKINS.some((s) => s[0] === id)) id = 'classic';
   if (id === 'classic') delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = id;
@@ -211,6 +211,26 @@ function showSkins() {
 }
 $('skin').onchange = () => { applySkin($('skin').value); try { localStorage.setItem('lunaris-skin', $('skin').value); } catch {} };
 try { document.documentElement.dataset.skin = localStorage.getItem('lunaris-skin') || ''; } catch {}
+// 테마(사이트 전체): 다크 / 라이트. 스킨(보드 색)과는 따로 고른다.
+function applyTheme(t) { t = t === 'light' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; $('theme').textContent = t === 'light' ? '☾' : '☀'; }
+$('theme').onclick = () => { const t = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; applyTheme(t); try { localStorage.setItem('lunaris-theme', t); } catch {} };
+{ let st = ''; try { st = localStorage.getItem('lunaris-theme') || ''; } catch {} applyTheme(st || document.documentElement.dataset.theme); }
+// 자가대국 수 간격 (브라우저 모드에서만 보인다)
+const PACES = [200, 500, 1000, 1500, 2000, 3000, 5000, 10000];
+const paceMs = () => +($('l-pace').value || 1500);
+function showPace() {
+  let cur = $('l-pace').value;
+  if (!cur) { try { cur = localStorage.getItem('lunaris-pace') || ''; } catch {} }
+  $('l-pace').innerHTML = PACES.map((ms) => `<option value="${ms}">${fmtTime(ms)}</option>`).join('');
+  $('l-pace').value = PACES.includes(+cur) ? String(cur) : '1500';
+  $('l-pace-val').textContent = fmtTime(paceMs());
+  $('l-pace-card').classList.toggle('hidden', !LOCAL);
+}
+$('l-pace').onchange = () => {
+  $('l-pace-val').textContent = fmtTime(paceMs());
+  try { localStorage.setItem('lunaris-pace', $('l-pace').value); } catch {}
+  if (LOCAL) send({ type: 'self_pace', ms: paceMs() });
+};
 // 생각 시간: 숫자 + 단위(ms / 초 / 분). 최소 20ms, 최대 60분. 서버 모드에서는 서버가 상한(기본 10초)으로 제한한다.
 const MIN_MS = 20, MAX_MS = 3600000;
 const UNIT_LABEL = { ko: ['ms', '초', '분'], en: ['ms', 's', 'min'] };
@@ -365,6 +385,7 @@ function showTab(name) {
   $('view-play').classList.toggle('hidden', name !== 'play');
   $('view-live').classList.toggle('hidden', name !== 'live');
   const live = name === 'live';
+  if (live && LOCAL) send({ type: 'self_pace', ms: paceMs() });
   if (live !== wantLive) { wantLive = live; send({ type: live ? 'sub_live' : 'unsub_live' }); }
   history.replaceState(null, '', live ? '#live' : '#play');
   if (live) renderLive();
