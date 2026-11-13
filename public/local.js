@@ -107,7 +107,7 @@ export function createLocalBackend(emit) {
 
   // ------------------------ 자가대국 (라이브 탭을 보는 동안만) ------------------------
   let stats = { games: 0, white: 0, black: 0, draws: 0, plies: 0, adjudicated: 0, since: Date.now(), nodes: 0 };
-  let recent = [], nextId = 1, liveGame = null, selfRunning = false, selfToken = 0, engines = null, openings = null;
+  let recent = [], nextId = 1, liveGame = null, selfRunning = false, selfToken = 0, engines = null, openings = null, selfPace = SELF_PACE;
   try {
     const j = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (j) { stats = { ...stats, ...j.stats }; nextId = stats.games + 1; }
@@ -134,10 +134,10 @@ export function createLocalBackend(emit) {
       if (token !== selfToken) return;
       if (moves.length >= MAX_PLIES) { result = '1/2-1/2'; reason = 'maxplies'; break; }
       const side = game.turn() === 'w' ? white : black;
-      const t0 = performance.now();
-      const r = await side.search({ startFen, moves, go: `movetime ${SELF_MOVETIME}`, timeoutMs: SELF_MOVETIME + 15000 });
+      const t0 = performance.now(), mt = Math.max(50, Math.min(SELF_MOVETIME, selfPace - 100));   // 간격이 짧으면 생각도 짧게
+      const r = await side.search({ startFen, moves, go: `movetime ${mt}`, timeoutMs: mt + 15000 });
       if (token !== selfToken) return;
-      const rest = SELF_PACE - (performance.now() - t0);   // 사람이 따라볼 수 있도록 한 수를 최소 SELF_PACE ms 간격으로 보여준다
+      const rest = selfPace - (performance.now() - t0);   // 사람이 따라볼 수 있도록 한 수를 최소 SELF_PACE ms 간격으로 보여준다
       if (rest > 0) { await sleep(rest); if (token !== selfToken) return; }
       if (!MOVE_RE.test(r.best ?? '')) throw new Error('bad bestmove');
       const mv = mvTry(game, r.best);
@@ -214,6 +214,7 @@ export function createLocalBackend(emit) {
         case 'move': return void humanMove(msg);
         case 'undo': return void undo();
         case 'resign': return void resign();
+        case 'self_pace': selfPace = Math.max(100, Math.min(60000, Math.round(+msg.ms) || SELF_PACE)); return;
         case 'sub_live': return startSelf();
         case 'unsub_live': return stopSelf();
       }
