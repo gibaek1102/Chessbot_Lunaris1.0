@@ -10,11 +10,15 @@
 </head>
 <body>
 <header>
-  <div class="brand"><span class="moon"></span><b>Lunaris</b><span class="ver" id="ver">NNUE chess engine</span></div>
+  <div class="brand">
+    <!-- 로고: public/logo.svg 를 올리고 아래 줄 맨 앞의 감싸는 주석 표시를 지우면 이름 앞에 나타납니다. -->
+    <!-- <img class="logo" src="./logo.svg" alt="" height="26"> -->
+    <b>Lunaris</b><span class="ver" id="ver">NNUE chess engine</span></div>
   <nav>
     <button class="tab active" data-tab="play" data-i18n="tab_play">대국</button>
     <button class="tab" data-tab="live" data-i18n="tab_live">라이브 자가대국</button>
   </nav>
+  <select id="skin" title="Skin"></select>
   <button id="lang" class="ghost" title="Language">EN</button>
 </header>
 
